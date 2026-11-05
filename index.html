@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>機材ブッキング</title>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--tx:#1d1d1b;--mut:#6b6a66;--bd:#e0ded8;--ac:#2f5d8a;--ok:#2e7d4f;--ng:#b3392f;--okbg:#e6f3ea;--ngbg:#f9e7e5;--wn:#9a6a00;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--card:#212120;--tx:#eeede9;--mut:#a09f9a;--bd:#34332f;--ac:#7fb0e0;--ok:#6fcf93;--ng:#f08a80;--okbg:#1d3326;--ngbg:#3a2220;--wn:#e0b45a;color-scheme:dark}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.5}
+input,select,button{font:inherit;font-size:16px;border:1px solid var(--bd);border-radius:10px;padding:10px;background:var(--card);color:var(--tx);width:100%;min-height:44px}
+button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer}
+button.ghost{background:transparent;color:var(--mut);border:1px solid var(--bd);width:auto;min-height:36px;padding:4px 10px;font-size:13px;font-weight:400}
+button.sm{width:auto;min-height:34px;padding:2px 12px;background:transparent;color:var(--ng);border:1px solid var(--bd);font-size:13px}
+.wrap{max-width:380px;margin:0 auto;padding:max(48px,env(safe-area-inset-top)) 20px 20px}
+.wrap h1{font-size:22px}.wrap input{margin-bottom:10px}
+header{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+header b{flex:1;font-size:16px}header span{font-size:12px;color:var(--mut)}
+.datebar{display:flex;gap:8px;padding:10px 14px;background:var(--bg);position:sticky;top:calc(56px + env(safe-area-inset-top));z-index:4}
+.datebar button{width:48px;flex:none;font-size:20px}
+.datebar input{text-align:center;font-weight:600}
+main{max-width:640px;margin:0 auto;padding:4px 14px calc(88px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.row label{font-size:12px;color:var(--mut)}
+details{border-top:1px solid var(--bd);padding:4px 0}details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:600;font-size:15px;padding:10px 0}
+.gear{display:grid;gap:6px;margin:4px 0 8px}
+.gear label{display:flex;gap:10px;align-items:center;border:1px solid var(--bd);border-radius:10px;padding:10px;min-height:48px;font-size:14px}
+.gear label.dis{opacity:.55}.gear input{width:22px;min-height:22px;flex:none;accent-color:var(--ac)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--bd);font-size:14px}
+.tag{font-size:12px;padding:2px 8px;border-radius:99px;display:inline-block;margin:1px 0}
+.free{background:var(--okbg);color:var(--ok)}.used{background:var(--ngbg);color:var(--ng)}
+.cat{color:var(--mut);font-size:12px;font-weight:400}.wn{color:var(--wn);font-size:12px}.ngt{color:var(--ng);font-size:12px}
+.msg{margin:10px 0 0;font-size:14px;color:var(--ng);white-space:pre-line}.msg.ok{color:var(--ok)}
+.empty{color:var(--mut);font-size:14px;padding:8px 0}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom);z-index:6}
+nav button{flex:1;background:transparent;color:var(--mut);border-radius:0;min-height:56px;font-size:13px}
+nav button.on{color:var(--ac)}
+</style>
+</head>
+<body>
+<div id="login" class="wrap" hidden>
+<h1>機材ブッキング</h1>
+<form id="lf"><input id="uid" placeholder="ユーザーID（半角英数字）" autocomplete="username" autocapitalize="none" required>
+<div id="regf" hidden><input id="nm" placeholder="表示名（例: 山田）" autocomplete="name"><input id="ic" placeholder="招待コード" autocapitalize="none"></div>
+<input id="pw" type="password" placeholder="パスワード（8文字以上）" autocomplete="current-password" required>
+<button type="submit" id="lbtn">ログイン</button></form>
+<button class="ghost" id="tg" type="button" style="width:100%;margin-top:10px">はじめての方は新規登録</button>
+<p class="msg" id="lerr"></p>
+<p class="cat">新規登録には、管理者から伝えられた招待コードが必要です。</p>
+</div>
+
+<div id="app" hidden>
+<header><b>機材ブッキング</b><span id="me"></span><button class="ghost" id="out">ログアウト</button></header>
+<div class="datebar"><button id="pv" aria-label="前の日">‹</button><input type="date" id="day"><button id="nx" aria-label="次の日">›</button></div>
+<main>
+<section id="t-status"></section>
+<section id="t-book" hidden>
+<div class="card">
+<div class="row"><label>スタジオ／持ち出し先<select id="place"></select></label><span></span></div>
+<div class="row"><label>開始<input type="time" id="s" value="10:00"></label><label>終了<input type="time" id="e" value="18:00"></label></div>
+<input id="q" placeholder="機材を検索（例: U87、1176）">
+</div>
+<div class="card"><div id="gear"></div></div>
+<button id="add">予約する</button>
+<p class="msg" id="msg"></p>
+</section>
+<section id="t-list" hidden></section>
+</main>
+<nav><button data-t="status">状況</button><button data-t="book">予約する</button><button data-t="list">予約一覧</button></nav>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.js"></script>
+<script>
+// ▼ Supabase の接続設定を貼り付けてください（KEY は sb_publishable_ で始まる公開用キー。sb_secret_ は絶対に貼らない）
+const SUPABASE_URL='https://iidvagyeieavmvwydqsb.supabase.co';
+const SUPABASE_KEY='sb_publishable_1a1sJOny7ipaWdsNIvEAqQ_7FKM-Ilm';
+// ▲
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const RL={admin:'管理者',booker:'ブッキング担当',engineer:'エンジニア',staff:'スタッフ'};
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+let sb,EQ=[],PL=[],NA={},BK=[],role='staff',tab='status',D0=iso(new Date()),timer;
+const sel=new Set();
+const canBook=()=>role==='admin'||role==='booker';
+const ov=(a,b)=>a.s<b.e&&b.s<a.e;
+const mapB=b=>({id:b.id,place:b.place,s:b.start_time.slice(0,5),e:b.end_time.slice(0,5),eq:(b.booking_items||[]).map(i=>i.equipment_id),who:(b.profiles&&b.profiles.name)||''});
+const cats=()=>[...new Set(EQ.map(x=>x.category))];
+
+async function boot(){
+  if(!window.supabase||SUPABASE_URL.includes('YOUR-PROJECT')){$('login').hidden=false;$('lerr').textContent='接続先（SUPABASE_URL / SUPABASE_KEY）が未設定です';return}
+  sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  const {data}=await sb.auth.getSession();
+  if(data.session)enter(data.session.user);else $('login').hidden=false;
+}
+const ID_DOMAIN='studio-gear.example';   // IDの後ろに付ける内部用の文字列（画面には出ません）
+let reg=false;
+const toMail=v=>v+'@'+ID_DOMAIN;
+$('tg').onclick=()=>{reg=!reg;$('regf').hidden=!reg;$('lbtn').textContent=reg?'登録してはじめる':'ログイン';$('tg').textContent=reg?'ログイン画面に戻る':'はじめての方は新規登録';$('pw').autocomplete=reg?'new-password':'current-password';$('lerr').textContent=''};
+$('lf').onsubmit=async e=>{
+  e.preventDefault();if(!sb)return;
+  const id=$('uid').value.trim().toLowerCase(),pw=$('pw').value,er=$('lerr');
+  if(!/^[a-z0-9._-]{3,20}$/.test(id)){er.textContent='IDは半角英数字（. _ - も可）の3〜20文字にしてください';return}
+  let r;
+  if(reg){
+    if(pw.length<8){er.textContent='パスワードは8文字以上にしてください';return}
+    if(!$('ic').value.trim()){er.textContent='招待コードを入力してください';return}
+    r=await sb.auth.signUp({email:toMail(id),password:pw,options:{data:{name:$('nm').value.trim()||id,invite_code:$('ic').value.trim()}}});
+    if(r.error){const t=r.error.message||'';er.textContent=/already/i.test(t)?'このIDはすでに使われています':(/invalid/i.test(t)&&/email/i.test(t))?'IDを登録できませんでした（管理者に連絡してください）':'登録できませんでした。招待コードとIDを確認してください（'+t+'）';return}
+    if(!r.data.session){r=await sb.auth.signInWithPassword({email:toMail(id),password:pw});if(r.error){er.textContent='登録しました。ログインしてください';return}}
+  }else{
+    r=await sb.auth.signInWithPassword({email:toMail(id),password:pw});
+    if(r.error){er.textContent='IDまたはパスワードが違います';return}
+  }
+  er.textContent='';$('pw').value='';
+  enter((r.data.session&&r.data.session.user)||r.data.user);
+};
+$('out').onclick=async()=>{clearInterval(timer);await sb.auth.signOut();$('app').hidden=true;$('login').hidden=false};
+
+async function enter(u){
+  $('login').hidden=true;
+  const [p,eq,pl,na]=await Promise.all([
+    sb.from('profiles').select('name,role').eq('id',u.id).single(),
+    sb.from('equipment').select('*').order('sort'),
+    sb.from('places').select('name').order('sort'),
+    sb.from('equipment_unavailable').select('equipment_id,day,note')]);
+  role=p.data?p.data.role:'staff';EQ=eq.data||[];PL=(pl.data||[]).map(x=>x.name);
+  NA={};(na.data||[]).forEach(r=>{(NA[r.equipment_id]=NA[r.equipment_id]||{})[r.day]=r.note||''});
+  $('me').textContent=((p.data&&p.data.name)||'')+'（'+RL[role]+'）';
+  $('place').innerHTML=PL.map(x=>`<option>${esc(x)}</option>`).join('');
+  document.querySelector('[data-t=book]').hidden=!canBook();
+  $('app').hidden=false;$('day').value=D0;
+  go(canBook()?'book':'status');await load();
+  clearInterval(timer);timer=setInterval(load,20000);
+}
+function go(t){
+  tab=t;
+  ['status','book','list'].forEach(k=>{$('t-'+k).hidden=k!==t});
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  draw();
+}
+document.querySelector('nav').onclick=e=>{const t=e.target.dataset&&e.target.dataset.t;if(t)go(t)};
+async function load(){
+  const {data,error}=await sb.from('bookings').select('id,place,start_time,end_time,profiles(name),booking_items(equipment_id)').eq('day',D0).order('start_time');
+  if(error)return;
+  BK=(data||[]).map(mapB);draw();
+}
+function setDay(d){D0=d;$('day').value=d;sel.clear();load()}
+$('day').onchange=e=>{if(e.target.value)setDay(e.target.value)};
+const shift=n=>{const d=new Date(D0+'T00:00:00');d.setDate(d.getDate()+n);setDay(iso(d))};
+$('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);
+
+function draw(){if(!sb||$('app').hidden)return;if(tab==='status')status();else if(tab==='book')picker();else list()}
+
+function status(){
+  $('t-status').innerHTML=`<div class="card">`+cats().map(c=>{
+    const it=EQ.filter(x=>x.category===c);let used=0;
+    const rows=it.map(x=>{
+      const u=BK.filter(b=>b.eq.includes(x.id)),na=NA[x.id]&&NA[x.id][D0]!==undefined;
+      if(u.length)used++;
+      const t=na?`<span class="tag used">使用不可${NA[x.id][D0]?'：'+esc(NA[x.id][D0]):''}</span>`:u.length?u.map(b=>`<span class="tag used">${esc(b.place)} ${b.s}–${b.e}</span>`).join('<br>'):'<span class="tag free">空き</span>';
+      return `<div class="item"><div>${esc(x.name)}</div><div style="text-align:right">${t}</div></div>`}).join('');
+    return `<details ${used?'open':''}><summary>${esc(c)} <span class="cat">使用中 ${used} / ${it.length}</span></summary>${rows}</details>`}).join('')+`</div>`;
+}
+
+function picker(){
+  const q=$('q').value.trim().toLowerCase(),cur={s:$('s').value,e:$('e').value};
+  const op=new Set([...document.querySelectorAll('#gear details[open] summary')].map(e=>e.firstChild.textContent.trim()));
+  $('gear').innerHTML=cats().map(c=>{
+    const it=EQ.filter(x=>x.category===c&&(!q||(x.name+' '+c).toLowerCase().includes(q)));
+    if(!it.length)return '';
+    const n=it.filter(x=>sel.has(x.id)).length;
+    return `<details ${q||n||op.has(c)?'open':''}><summary>${esc(c)} <span class="cat">${it.length}点${n?'・選択'+n:''}</span></summary><div class="gear">${it.map(x=>{
+      const na=NA[x.id]&&NA[x.id][D0]!==undefined,tk=na?null:BK.find(b=>ov(b,cur)&&b.eq.includes(x.id)),off=na||tk;
+      if(off)sel.delete(x.id);
+      return `<label class="${off?'dis':''}"><input type="checkbox" value="${esc(x.id)}" ${sel.has(x.id)?'checked':''} ${off?'disabled':''}><span>${esc(x.name)}${na?`<br><span class="ngt">使用不可${NA[x.id][D0]?'：'+esc(NA[x.id][D0]):''}</span>`:tk?`<br><span class="ngt">${esc(tk.place)} が ${tk.s}–${tk.e} に使用予定</span>`:x.note?`<br><span class="wn">${esc(x.note)}</span>`:''}</span></label>`}).join('')}</div></details>`}).join('')||'<div class="empty">該当する機材がありません</div>';
+}
+$('gear').onchange=e=>{if(e.target.type==='checkbox')e.target.checked?sel.add(e.target.value):sel.delete(e.target.value)};
+['q'].forEach(i=>$(i).oninput=picker);['s','e'].forEach(i=>$(i).onchange=picker);
+
+$('add').onclick=async()=>{
+  const m=$('msg'),s=$('s').value,e=$('e').value;m.className='msg';
+  if(!s||!e||s>=e){m.textContent='時間を確認してください（終了は開始より後）';return}
+  if(!sel.size){m.textContent='機材を1つ以上選んでください';return}
+  $('add').disabled=true;m.textContent='確認中…';
+  const {error}=await sb.rpc('create_booking',{p_day:D0,p_place:$('place').value,p_start:s,p_end:e,p_equipment:[...sel]});
+  $('add').disabled=false;
+  if(error){
+    const t=error.message||'';
+    m.textContent=error.code==='23P01'?'他の予約と機材の時間が重なりました。画面を更新して空きを確認してください':t.includes('not_allowed')?'予約できる権限がありません':t.includes('unavailable')?'使用不可の機材が含まれています':'予約できませんでした。もう一度お試しください';
+    await load();return}
+  sel.clear();m.className='msg ok';m.textContent='予約しました';await load();
+};
+
+function list(){
+  $('t-list').innerHTML=BK.length?BK.map(b=>`<div class="card item" style="border-top:1px solid var(--bd)"><div><b>${esc(b.place)}</b>　${b.s}–${b.e}<span class="cat">　${esc(b.who)}</span><div class="cat">${b.eq.map(esc).join('、')}</div></div>${canBook()?`<button class="sm" data-id="${b.id}">取消</button>`:''}</div>`).join(''):'<div class="empty">この日の予約はありません</div>';
+}
+$('t-list').onclick=async e=>{
+  const id=e.target.dataset&&e.target.dataset.id;if(!id||!confirm('この予約を取り消しますか？'))return;
+  await sb.from('bookings').delete().eq('id',id);load();
+};
+boot();
+</script>
+</body>
+</html>
